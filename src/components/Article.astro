@@ -57,12 +57,19 @@ const paces = [7, 8, 9, 10, 11, 12].map((m) => {
 
     <h2>How incline changes the pace</h2>
     <p>Incline makes the same speed harder. The tool shows the flat-ground pace that takes about the same effort. This is an estimate, not a measurement.</p>
-    <p>It uses the running equation from the American College of Sports Medicine (ACSM), in <em>ACSM's Guidelines for Exercise Testing and Prescription</em>. Oxygen use in ml per kg per minute is 0.2 &times; S + 0.9 &times; S &times; G + 3.5, where S is speed in meters per minute and G is the grade as a fraction, so 5% is 0.05. For the same oxygen use on a flat belt, the speed is S &times; (1 + 4.5 &times; G). Each 1% of incline is worth about 4.5% more flat speed.</p>
+    <p>It uses the running equation from the American College of Sports Medicine (ACSM), published in <em>ACSM's Guidelines for Exercise Testing and Prescription</em> (see <a href="#sources">Sources</a>). Oxygen use in ml per kg per minute is 0.2 &times; S + 0.9 &times; S &times; G + 3.5, where S is speed in meters per minute and G is the grade as a fraction, so 5% is 0.05. For the same oxygen use on a flat belt, the speed is S &times; (1 + 4.5 &times; G). Each 1% of incline is worth about 4.5% more flat speed.</p>
     <p>Example: you run 6 mph at 5% incline. The flat speed is 6 &times; (1 + 4.5 &times; 0.05) = 7.35 mph. That is an 8:10 mile on flat ground, compared with 10:00 on the belt.</p>
-    <p>The equation was built for steady running at 5 mph (8 km/h) or faster and for grades up to about 15%. Below that speed, or when you walk, treat the number as rough. Heart rate, form, heat and treadmill calibration all change real effort.</p>
+    <p>The equation is documented for steady running above 5 mph (8 km/h). Below that speed, or when you walk, this tool shows no flat-ground estimate. The tool also limits the incline input to 15%; that is a limit of this tool, not of the equation. Heart rate, form, heat and treadmill calibration all change real effort. The equation is known to over-estimate absolute oxygen use in some athletes, so treat the result as a rough guide.</p>
 
     <h2>The 1% incline rule</h2>
-    <p>Outdoors, you push against the air. A belt removes that. In 1996, Jones and Doust compared treadmill running with outdoor running and found that a 1% grade on the treadmill best matched the energy cost of flat outdoor running. Many runners use 1% for easy and steady runs for this reason. It is a rule of thumb.</p>
+    <p>Outdoors, you push against the air. A belt removes that. In 1996, Jones and Doust tested nine trained men at 6.5 to 11.2 mph and compared treadmill grades from 0 to 3% with level road running. A 1% grade matched the energy cost of the road at most speeds. At the two slowest speeds, 0% or 1% matched, and at the fastest speed the match sat between 1% and 2%. Many runners use 1% for easy and steady runs for this reason. It is a rule of thumb from a small study.</p>
+
+    <h2 id="sources">Sources</h2>
+    <ul>
+      <li>American College of Sports Medicine. <em>ACSM's Guidelines for Exercise Testing and Prescription</em>, metabolic calculations (running equation). Wolters Kluwer. Edition and table number not verified by the site owner.</li>
+      <li>Restated and tested in: Hippokratia 2013, "Indirect estimation of VO2max in athletes by ACSM's equation: valid or not?" It repeats the equation and says it is valid for steady-state exercise at speeds above 5.0 mph (134 m/min). <a href="https://pubmed.ncbi.nlm.nih.gov/24376318/" rel="noopener">PubMed 24376318</a>.</li>
+      <li>Jones AM, Doust JH. A 1% treadmill grade most accurately reflects the energetic cost of outdoor running. <em>Journal of Sports Sciences</em> 1996;14(4):321-327. <a href="https://pubmed.ncbi.nlm.nih.gov/8887211/" rel="noopener">PubMed 8887211</a>.</li>
+    </ul>
 
     <h2>Tips for treadmill pacing</h2>
     <ul>

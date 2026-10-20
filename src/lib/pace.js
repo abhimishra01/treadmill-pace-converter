@@ -9,7 +9,11 @@ export const RACES = [
 ];
 export const MIN_MPH = 0.5;
 export const MAX_MPH = 25;
-export const MAX_INCLINE = 15;
+export const MAX_INCLINE = 15; // this tool's own input limit, not a limit of the equation
+export const MIN_KMH = MIN_MPH * KM_PER_MILE;
+export const MAX_KMH = 40;
+// The running equation is documented for speeds above 5 mph (134 m/min). Below it we show no flat equivalent.
+export const FLAT_MIN_MPH = 5;
 
 export const kmhToMph = (kmh) => kmh / KM_PER_MILE;
 export const mphToKmh = (mph) => mph * KM_PER_MILE;
@@ -65,15 +69,12 @@ export function formatSpeed(value, digits = 2) {
 // ACSM running equation: VO2 = 0.2*S + 0.9*S*G + 3.5 (S in m/min, G as a fraction).
 // Same VO2 on the flat: 0.2*S0 = 0.2*S + 0.9*S*G, so S0 = S * (1 + 4.5*G). The ratio holds in any unit.
 export const FLAT_FACTOR_PER_PERCENT = 0.045;
+export const flatApplies = (mph) => mph >= FLAT_MIN_MPH - 1e-9;
 export function flatEquivalentSpeed(speed, inclinePercent) {
   return speed * (1 + FLAT_FACTOR_PER_PERCENT * inclinePercent);
 }
 
 // Race finish time in seconds, from a pace in seconds per km.
-export function raceSeconds(paceSecPerKm, km) {
-  return paceSecPerKm * km;
-}
-
 // All numbers the page shows, from a speed in mph and an incline in percent.
 export function describe(mph, incline = 0) {
   const kmh = mphToKmh(mph);
@@ -83,6 +84,7 @@ export function describe(mph, incline = 0) {
   const flatPerKm = paceSeconds(flatKmh);
   return {
     mph, kmh,
+    flatApplies: flatApplies(mph),
     perMile: paceSeconds(mph),
     perKm,
     flatMph, flatKmh,
@@ -91,13 +93,13 @@ export function describe(mph, incline = 0) {
     secondsSavedPerMile: paceSeconds(mph) - paceSeconds(flatMph),
     races: RACES.map((r) => ({
       ...r,
-      time: raceSeconds(perKm, r.km),
-      flatTime: raceSeconds(flatPerKm, r.km),
+      time: perKm * r.km,
+      flatTime: flatPerKm * r.km,
     })),
   };
 }
 
-// The speed a treadmill can really be set to (steps of 0.1) next to a speed, and the pace it gives.
+// Nearest treadmill setting (steps of 0.1) for a speed.
 export function nearestSetting(speed, step = 0.1) {
   const s = Math.round(speed / step) * step;
   return Number(s.toFixed(1));

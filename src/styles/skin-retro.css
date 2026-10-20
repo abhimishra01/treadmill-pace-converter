@@ -65,3 +65,6 @@
 :root[data-skin="retro"][data-theme] #tool .overflow-x-auto { border: 2px solid var(--ink); border-radius: 10px; }
 :root[data-skin="retro"][data-theme] #tool thead { background: var(--brand-soft); }
 :root[data-skin="retro"][data-theme] .prose-site .table-wrap { border: 2px solid var(--ink); border-radius: 10px; }
+
+:root[data-skin="retro"][data-theme] #tool input[type="text"][aria-invalid="true"] { border-color: #b91c1c; }
+:root[data-skin="retro"][data-theme="dark"] #tool input[type="text"][aria-invalid="true"] { border-color: #f87171; }

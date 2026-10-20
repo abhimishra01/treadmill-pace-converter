@@ -117,3 +117,12 @@ test('nearestSetting rounds to a treadmill step of 0.1', () => {
   assert.equal(nearestSetting(6.04), 6);
   assert.equal(nearestSetting(12.07), 12.1);
 });
+test('flat equivalent applies only from 5 mph', async () => {
+  const { flatApplies, FLAT_MIN_MPH, MIN_KMH, MIN_MPH, KM_PER_MILE } = await import('../src/lib/pace.js');
+  assert.equal(FLAT_MIN_MPH, 5);
+  assert.equal(flatApplies(4.9), false);
+  assert.equal(flatApplies(5), true);
+  assert.equal(describe(3.5, 2).flatApplies, false);
+  assert.equal(describe(8, 2).flatApplies, true);
+  assert.equal(MIN_KMH, MIN_MPH * KM_PER_MILE);
+});
