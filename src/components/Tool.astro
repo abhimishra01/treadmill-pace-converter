@@ -1,0 +1,327 @@
+---
+// Treadmill pace converter UI. Logic lives in src/lib/pace.js (tested by npm test).
+import { describe, formatPace, formatDuration } from '../lib/pace.js';
+
+const SPEED_CHIPS = { mi: [4, 5, 6, 6.5, 7, 7.5, 8, 9, 10], km: [6, 8, 9, 10, 11, 12, 13, 14, 15] };
+const INCLINE_CHIPS = [0, 1, 2, 3, 4, 5, 6, 8, 10];
+// First paint matches the default state (6 mph, 0% incline), so the page reads well before the script runs.
+const d = describe(6, 0);
+---
+<section id="tool" aria-label="Treadmill pace converter" class="rounded-2xl border border-line bg-card p-4 sm:p-6 sm:shadow-[6px_6px_0_0_var(--line)]">
+  <noscript><p class="mb-4 rounded-xl bg-brand-soft p-3 text-sm">This converter needs JavaScript. The table of common speeds below the tool works without it.</p></noscript>
+  <div class="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:items-start md:gap-8">
+
+    <div class="contents md:block md:space-y-6">
+      <!-- Units, speed, pace -->
+      <div class="order-1 space-y-5 md:order-none">
+        <fieldset>
+          <legend class="mb-2 text-sm font-semibold">Units</legend>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="seg"><input type="radio" name="unit" value="mi" class="peer sr-only" checked /><span class="seg-face">Miles</span></label>
+            <label class="seg"><input type="radio" name="unit" value="km" class="peer sr-only" /><span class="seg-face">Kilometers</span></label>
+          </div>
+        </fieldset>
+
+        <div>
+          <label for="speed" class="mb-2 block text-sm font-semibold">Treadmill speed <span id="speed-unit" class="font-normal text-muted">(mph)</span></label>
+          <div class="flex items-stretch gap-2">
+            <button type="button" id="speed-dec" class="step" aria-label="Lower the speed by 0.1 mph">&minus;</button>
+            <input id="speed" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" value="6" aria-describedby="speed-err"
+              class="h-14 min-w-0 flex-1 rounded-xl border border-edge bg-paper px-3 text-center font-mono text-3xl font-bold tabular-nums outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 aria-[invalid=true]:border-red-600" />
+            <button type="button" id="speed-inc" class="step" aria-label="Raise the speed by 0.1 mph">+</button>
+          </div>
+          <p id="speed-err" class="mt-1 min-h-[1.25rem] text-sm font-medium text-red-700 dark:text-red-400"></p>
+          <div id="speed-chips" role="group" aria-label="Common speeds">
+            {(['mi', 'km'] as const).map((u) => (
+              <div class="flex flex-wrap gap-2" data-chip-unit={u} hidden={u !== 'mi'}>
+                {SPEED_CHIPS[u].map((v) => <button type="button" class="chip" data-speed={v} aria-pressed={u === 'mi' && v === 6 ? 'true' : 'false'}>{v}</button>)}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label for="pace" class="mb-2 block text-sm font-semibold">Or enter a pace <span id="pace-unit" class="font-normal text-muted">(min per mile)</span></label>
+          <input id="pace" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" value="10:00" aria-describedby="pace-err"
+            class="h-14 w-full rounded-xl border border-edge bg-paper px-3 text-center font-mono text-3xl font-bold tabular-nums outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 aria-[invalid=true]:border-red-600" />
+          <p id="pace-err" class="mt-1 min-h-[2.5rem] text-sm text-muted sm:min-h-[1.25rem]" data-hint="Type 8:30 or just 830. The speed updates as you type.">Type 8:30 or just 830. The speed updates as you type.</p>
+        </div>
+      </div>
+
+      <!-- Incline -->
+      <div class="order-3 space-y-5 md:order-none">
+        <div>
+          <label for="incline" class="mb-2 block text-sm font-semibold">Incline <span class="font-normal text-muted">(percent)</span></label>
+          <div class="flex items-stretch gap-2">
+            <button type="button" id="inc-dec" class="step" aria-label="Lower the incline by 0.5 percent">&minus;</button>
+            <input id="incline" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" value="0" aria-describedby="incline-err"
+              class="h-14 min-w-0 flex-1 rounded-xl border border-edge bg-paper px-3 text-center font-mono text-3xl font-bold tabular-nums outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 aria-[invalid=true]:border-red-600" />
+            <button type="button" id="inc-inc" class="step" aria-label="Raise the incline by 0.5 percent">+</button>
+          </div>
+          <p id="incline-err" class="mt-1 min-h-[1.25rem] text-sm font-medium text-red-700 dark:text-red-400"></p>
+          <div id="incline-chips" class="flex flex-wrap gap-2" role="group" aria-label="Common inclines">
+            {INCLINE_CHIPS.map((v) => <button type="button" class="chip" data-incline={v} aria-pressed={v === 0 ? 'true' : 'false'}>{v}%</button>)}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contents md:block md:min-w-0 md:space-y-5">
+      <!-- Result -->
+      <div class="order-2 min-w-0 md:order-none">
+        <div id="result-box" class="rounded-xl bg-brand-soft p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-ink">Your pace</h2>
+          <dl id="cells" class="mt-3 grid grid-cols-2 gap-3">
+            <div class="cell" data-cell="mph" style="order:0"><dt>Speed</dt><dd><span class="num" id="out-mph">{d.mph.toFixed(2)}</span> <span class="u">mph</span></dd></div>
+            <div class="cell" data-cell="kmh" style="order:2"><dt>Speed</dt><dd><span class="num" id="out-kmh">{d.kmh.toFixed(2)}</span> <span class="u">km/h</span></dd></div>
+            <div class="cell" data-cell="permi" style="order:1"><dt>Pace</dt><dd><span class="num" id="out-permi">{formatPace(d.perMile)}</span> <span class="u">min/mi</span></dd></div>
+            <div class="cell" data-cell="perkm" style="order:3"><dt>Pace</dt><dd><span class="num" id="out-perkm">{formatPace(d.perKm)}</span> <span class="u">min/km</span></dd></div>
+          </dl>
+          <p id="result-status" role="status" aria-live="polite" class="mt-3 min-h-[3.25rem] text-base font-medium">6 mph is a pace of 10:00 per mile, or 6:13 per km.</p>
+        </div>
+      </div>
+
+      <div class="order-4 min-w-0 space-y-5 md:order-none">
+        <!-- Flat-ground equivalent -->
+        <div id="flat-box" class="rounded-xl border border-line p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-ink">Flat-ground equivalent <span class="font-normal normal-case tracking-normal text-muted">(estimate)</span></h2>
+          <p id="flat-main" class="mt-2 min-h-[1.75rem] text-xl font-bold tabular-nums">Set an incline to see this.</p>
+          <p id="flat-sub" class="min-h-[4.5rem] text-sm text-muted sm:min-h-[3rem]">Same effort on flat ground. Pick an incline above, such as 3% or 5%.</p>
+          <p class="mt-1 text-xs text-muted">Uses the ACSM running equation. It is meant for steady running at 5 mph (8 km/h) or faster, up to 15% incline. Real effort changes with your build, form and the treadmill.</p>
+        </div>
+
+        <!-- Race times -->
+        <div>
+          <h2 class="text-sm font-semibold">Race time at this pace</h2>
+          <div class="mt-2 overflow-x-auto rounded-xl border border-line">
+            <table class="w-full min-w-[17rem] text-left text-sm">
+              <caption class="sr-only">Estimated finish times for 5K, 10K, half marathon and marathon at the current treadmill pace, and at the flat-ground equivalent pace when an incline is set</caption>
+              <thead class="bg-brand-soft text-xs uppercase tracking-wide text-brand-ink">
+                <tr><th scope="col" class="px-3 py-2 font-semibold">Race</th><th scope="col" class="px-3 py-2 font-semibold">At this pace</th><th scope="col" id="flat-th" class="px-3 py-2 font-semibold" hidden>Flat equivalent</th></tr>
+              </thead>
+              <tbody id="races" class="divide-y divide-line">
+                {d.races.map((r) => (
+                  <tr data-race={r.id}><th scope="row" class="px-3 py-2.5 font-semibold">{r.label}</th><td class="px-3 py-2.5 font-mono tabular-nums" data-t>{formatDuration(r.time)}</td><td class="px-3 py-2.5 font-mono tabular-nums" data-f hidden>{formatDuration(r.flatTime)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-1 text-xs text-muted">Treadmill running only. Outdoors, wind, hills and turns change the time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  .seg-face { display:flex; min-height:3rem; align-items:center; justify-content:center; border-radius:.75rem; border:1px solid var(--edge); background:var(--paper); padding:.5rem .9rem; font-weight:600; font-size:.95rem; cursor:pointer; text-align:center; transition:background-color .12s,border-color .12s; user-select:none; }
+  .seg-face:hover { border-color: var(--brand); }
+  .peer:checked + .seg-face { background: var(--brand); border-color: var(--brand); color:#fff; }
+  .peer:focus-visible + .seg-face { outline:2px solid var(--brand-ink); outline-offset:2px; }
+  .step { width:3.5rem; flex:none; border-radius:.75rem; border:1px solid var(--edge); background:var(--paper); font-size:1.75rem; font-weight:600; line-height:1; cursor:pointer; }
+  .step:hover { border-color: var(--brand); }
+  .step:active { background: var(--brand-soft); }
+  .chip { min-height:2.75rem; min-width:3.25rem; padding:.25rem .75rem; border-radius:999px; border:1px solid var(--edge); background:var(--paper); font-weight:600; font-size:.95rem; font-variant-numeric:tabular-nums; cursor:pointer; }
+  .chip:hover { border-color: var(--brand); }
+  .chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color:#fff; }
+  #speed-chips > div[hidden] { display:none; }
+  .cell { border-radius:.75rem; background:var(--card); border:1px solid var(--line); padding:.6rem .8rem; min-width:0; }
+  .cell dt { font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .cell dd { margin:0; white-space:nowrap; }
+  .cell .num { font-family:var(--font-mono); font-size:1.75rem; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.25; }
+  .cell .u { font-size:.85rem; font-weight:600; color:var(--muted); }
+  .cell .u { display:block; line-height:1.1; }
+  @media (min-width: 640px) { .cell .num { font-size:2.25rem; } .cell .u { display:inline; font-size:.9rem; } }
+</style>
+
+<script>
+  import {
+    parseNumber, parsePace, formatPace, formatDuration, formatSpeed, kmhToMph, mphToKmh,
+    paceSeconds, speedFromPace, describe, nearestSetting, MIN_MPH, MAX_MPH, MAX_INCLINE,
+  } from '../lib/pace.js';
+
+  type Unit = 'mi' | 'km';
+  const KEY = 'treadmill-pace-v1';
+  const LIMITS = { mi: { min: MIN_MPH, max: MAX_MPH }, km: { min: 0.8, max: 40 } };
+  const UNIT = {
+    mi: { speed: 'mph', per: 'mile', paceLabel: '(min per mile)' },
+    km: { speed: 'km/h', per: 'km', paceLabel: '(min per km)' },
+  };
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const speedEl = $<HTMLInputElement>('speed');
+  const paceEl = $<HTMLInputElement>('pace');
+  const inclineEl = $<HTMLInputElement>('incline');
+
+  const state = { unit: 'mi' as Unit, mph: 6, incline: 0 };
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && typeof saved === 'object') {
+      if (saved.unit === 'mi' || saved.unit === 'km') state.unit = saved.unit;
+      if (typeof saved.mph === 'number' && saved.mph >= MIN_MPH && saved.mph <= MAX_MPH) state.mph = saved.mph;
+      if (typeof saved.incline === 'number' && saved.incline >= 0 && saved.incline <= MAX_INCLINE) state.incline = saved.incline;
+    }
+  } catch {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+
+  const toDisplaySpeed = (mph: number) => (state.unit === 'mi' ? mph : mphToKmh(mph));
+  const fromDisplaySpeed = (v: number) => (state.unit === 'mi' ? v : kmhToMph(v));
+  const paceOf = (mph: number) => paceSeconds(toDisplaySpeed(mph)); // seconds per mile or per km
+
+  const setErr = (id: string, input: HTMLInputElement, msg: string) => {
+    const el = $(id);
+    el.textContent = msg || el.dataset.hint || '';
+    el.classList.toggle('font-medium', !!msg); el.classList.toggle('text-red-700', !!msg); el.classList.toggle('dark:text-red-400', !!msg); el.classList.toggle('text-muted', !msg);
+    if (msg) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+  };
+  const clearErrs = () => { setErr('speed-err', speedEl, ''); setErr('pace-err', paceEl, ''); };
+
+  function paintUnitUi() {
+    const u = UNIT[state.unit];
+    $('speed-unit').textContent = `(${u.speed})`;
+    $('pace-unit').textContent = u.paceLabel;
+    document.querySelectorAll<HTMLInputElement>('input[name="unit"]').forEach((r) => { r.checked = r.value === state.unit; });
+    document.querySelectorAll<HTMLElement>('[data-chip-unit]').forEach((g) => { g.hidden = g.dataset.chipUnit !== state.unit; });
+    $('speed-dec').setAttribute('aria-label', `Lower the speed by 0.1 ${u.speed}`);
+    $('speed-inc').setAttribute('aria-label', `Raise the speed by 0.1 ${u.speed}`);
+    // Put the chosen system first in the result grid.
+    const order = state.unit === 'mi' ? ['mph', 'permi', 'kmh', 'perkm'] : ['kmh', 'perkm', 'mph', 'permi'];
+    order.forEach((c, i) => { (document.querySelector(`[data-cell="${c}"]`) as HTMLElement).style.order = String(i); });
+  }
+
+  function paintResult(from: 'speed' | 'pace' | 'other') {
+    const d = describe(state.mph, state.incline);
+    $('out-mph').textContent = d.mph.toFixed(2);
+    $('out-kmh').textContent = d.kmh.toFixed(2);
+    $('out-permi').textContent = formatPace(d.perMile);
+    $('out-perkm').textContent = formatPace(d.perKm);
+
+    const u = UNIT[state.unit];
+    const sp = toDisplaySpeed(state.mph);
+    const pace = formatPace(paceOf(state.mph));
+    const other = state.unit === 'mi' ? `${formatPace(d.perKm)} per km` : `${formatPace(d.perMile)} per mile`;
+    let status = `${formatSpeed(sp)} ${u.speed} is a pace of ${pace} per ${u.per}, or ${other}.`;
+    if (from === 'pace') {
+      const set = nearestSetting(sp);
+      if (Math.abs(set - sp) > 0.004) status += ` Nearest treadmill setting: ${set.toFixed(1)} ${u.speed}, which is ${formatPace(paceSeconds(set))} per ${u.per}.`;
+    }
+    $('result-status').textContent = status;
+
+    const hasIncline = state.incline > 0;
+    $('flat-th').hidden = !hasIncline;
+    document.querySelectorAll<HTMLElement>('[data-f]').forEach((c) => { c.hidden = !hasIncline; });
+    d.races.forEach((r) => {
+      const row = document.querySelector(`[data-race="${r.id}"]`) as HTMLElement;
+      (row.querySelector('[data-t]') as HTMLElement).textContent = formatDuration(r.time);
+      (row.querySelector('[data-f]') as HTMLElement).textContent = formatDuration(r.flatTime);
+    });
+
+    if (hasIncline) {
+      const fs = toDisplaySpeed(d.flatMph);
+      const fp = state.unit === 'mi' ? d.flatPerMile : d.flatPerKm;
+      const gain = Math.round(paceOf(state.mph)) - Math.round(fp);
+      $('flat-main').textContent = `${formatPace(fp)} per ${u.per} (${formatSpeed(fs)} ${u.speed})`;
+      $('flat-sub').textContent = `At ${formatSpeed(state.incline, 1)}% incline, ${pace} per ${u.per} takes about the effort of ${formatPace(fp)} per ${u.per} on flat ground. That is ${formatPace(gain)} per ${u.per} faster than the belt.`;
+    } else {
+      $('flat-main').textContent = 'Set an incline to see this.';
+      $('flat-sub').textContent = 'Same effort on flat ground. Pick an incline above, such as 3% or 5%.';
+    }
+
+    document.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => {
+      const mine = (b.parentElement as HTMLElement).dataset.chipUnit === state.unit;
+      b.setAttribute('aria-pressed', mine && Math.abs(Number(b.dataset.speed) - sp) < 1e-6 ? 'true' : 'false');
+    });
+    document.querySelectorAll<HTMLElement>('[data-incline]').forEach((b) => {
+      b.setAttribute('aria-pressed', Math.abs(Number(b.dataset.incline) - state.incline) < 1e-6 ? 'true' : 'false');
+    });
+    save();
+  }
+
+  function blank(which: 'speed' | 'pace') {
+    ['out-mph', 'out-kmh', 'out-permi', 'out-perkm'].forEach((id) => { $(id).textContent = '–'; });
+    $('result-status').textContent = which === 'speed' ? 'Enter a speed to see the pace.' : 'Enter a pace to see the speed.';
+  }
+
+  const writeSpeedField = () => { speedEl.value = formatSpeed(toDisplaySpeed(state.mph)); };
+  const writePaceField = () => { paceEl.value = formatPace(paceOf(state.mph)); };
+
+  speedEl.addEventListener('input', () => {
+    const n = parseNumber(speedEl.value);
+    const lim = LIMITS[state.unit];
+    if (n === null || n < lim.min || n > lim.max) {
+      setErr('speed-err', speedEl, speedEl.value.trim() === '' ? '' : `Enter a speed from ${lim.min} to ${lim.max} ${UNIT[state.unit].speed}.`);
+      blank('speed');
+      return;
+    }
+    clearErrs();
+    state.mph = fromDisplaySpeed(n);
+    writePaceField();
+    paintResult('speed');
+  });
+
+  paceEl.addEventListener('input', () => {
+    const sec = parsePace(paceEl.value);
+    const lim = LIMITS[state.unit];
+    const speed = sec ? speedFromPace(sec) : NaN;
+    if (!sec || speed < lim.min - 1e-9 || speed > lim.max + 1e-9) {
+      setErr('pace-err', paceEl, paceEl.value.trim() === '' ? '' : `Enter a pace from ${formatPace(paceSeconds(lim.max))} to ${formatPace(paceSeconds(lim.min))}, like 8:30.`);
+      blank('pace');
+      return;
+    }
+    clearErrs();
+    state.mph = fromDisplaySpeed(speed);
+    writeSpeedField();
+    paintResult('pace');
+  });
+
+  inclineEl.addEventListener('input', () => {
+    const n = parseNumber(inclineEl.value);
+    if (n === null || n > MAX_INCLINE) {
+      setErr('incline-err', inclineEl, inclineEl.value.trim() === '' ? '' : `Enter an incline from 0 to ${MAX_INCLINE} percent.`);
+      return;
+    }
+    setErr('incline-err', inclineEl, '');
+    state.incline = n;
+    paintResult('other');
+  });
+
+  // On blur, put every field back in step with the stored value (fixes half-typed or invalid text).
+  const settle = () => {
+    clearErrs(); setErr('incline-err', inclineEl, '');
+    writeSpeedField(); writePaceField(); inclineEl.value = formatSpeed(state.incline, 1);
+    paintResult('other');
+  };
+  [speedEl, paceEl, inclineEl].forEach((el) => el.addEventListener('blur', settle));
+
+  function stepSpeed(dir: 1 | -1) {
+    const lim = LIMITS[state.unit];
+    const cur = Math.round(toDisplaySpeed(state.mph) * 10) / 10;
+    const next = Math.min(lim.max, Math.max(lim.min, Number((cur + dir * 0.1).toFixed(1))));
+    state.mph = fromDisplaySpeed(next);
+    clearErrs(); writeSpeedField(); writePaceField(); paintResult('speed');
+  }
+  $('speed-dec').addEventListener('click', () => stepSpeed(-1));
+  $('speed-inc').addEventListener('click', () => stepSpeed(1));
+
+  function setIncline(v: number) {
+    state.incline = Math.min(MAX_INCLINE, Math.max(0, v));
+    setErr('incline-err', inclineEl, '');
+    inclineEl.value = formatSpeed(state.incline, 1);
+    paintResult('other');
+  }
+  $('inc-dec').addEventListener('click', () => setIncline(Math.round(state.incline * 2) / 2 - 0.5));
+  $('inc-inc').addEventListener('click', () => setIncline(Math.round(state.incline * 2) / 2 + 0.5));
+
+  document.querySelectorAll<HTMLElement>('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+    state.mph = fromDisplaySpeed(Number(b.dataset.speed));
+    clearErrs(); writeSpeedField(); writePaceField(); paintResult('speed');
+  }));
+  document.querySelectorAll<HTMLElement>('[data-incline]').forEach((b) => b.addEventListener('click', () => setIncline(Number(b.dataset.incline))));
+
+  document.querySelectorAll<HTMLInputElement>('input[name="unit"]').forEach((r) => r.addEventListener('change', () => {
+    if (!r.checked) return;
+    state.unit = r.value as Unit;
+    clearErrs(); paintUnitUi(); writeSpeedField(); writePaceField(); paintResult('other');
+  }));
+
+  paintUnitUi(); writeSpeedField(); writePaceField(); inclineEl.value = formatSpeed(state.incline, 1); paintResult('other');
+</script>

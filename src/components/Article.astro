@@ -1,0 +1,87 @@
+---
+// SEO article for the treadmill pace converter. Table values come from the tested lib, so they cannot drift.
+import { describe, paceSeconds, formatPace, formatDuration, formatSpeed, speedFromPace } from '../lib/pace.js';
+
+const speeds = [3, 4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10, 11, 12].map((mph) => {
+  const d = describe(mph);
+  return { mph, perMile: formatPace(d.perMile), kmh: d.kmh.toFixed(2), perKm: formatPace(d.perKm) };
+});
+const paces = [7, 8, 9, 10, 11, 12].map((m) => {
+  const mph = speedFromPace(m * 60);
+  const d = describe(mph);
+  return { label: `${m}:00`, mph: mph.toFixed(2), t: Object.fromEntries(d.races.map((r) => [r.id, formatDuration(r.time)])) };
+});
+---
+<section aria-labelledby="about-tool" class="mx-auto max-w-5xl px-4 pt-16">
+  <article class="prose-site">
+    <h2 id="about-tool" style="margin-top:0">What a treadmill pace converter does</h2>
+    <p>A treadmill shows speed, in miles per hour or kilometers per hour. Most runners think in pace, in minutes per mile or minutes per kilometer. A treadmill pace converter changes one into the other. Type 6 mph and it tells you that is a 10:00 mile. Type an 8:30 pace and it tells you to set the belt to about 7.1 mph.</p>
+    <p>This one also gives you the same answer in both unit systems at once, the closest speed a treadmill can really hold, finish times for common races, and an estimate for what an incline is worth on flat ground.</p>
+
+    <h2>How to use the converter</h2>
+    <ol>
+      <li>Pick miles or kilometers.</li>
+      <li>Type a treadmill speed, tap a common speed, or use the plus and minus buttons. The pace updates at once.</li>
+      <li>Or type a pace in the pace box, like 8:30 or just 830. The speed updates as you type.</li>
+      <li>Set an incline to see the flat-ground equivalent and the matching race times.</li>
+    </ol>
+
+    <h2>The math in one line</h2>
+    <p>Pace in minutes equals 60 divided by speed. At 6 mph, 60 &divide; 6 = 10 minutes per mile. At 10 km/h, 60 &divide; 10 = 6 minutes per kilometer. To get seconds, multiply the part after the decimal point by 60. At 7 mph, 60 &divide; 7 = 8.571, and 0.571 &times; 60 = 34 seconds, so the pace is 8:34.</p>
+    <p>To change between miles and kilometers, use 1 mile = 1.609344 kilometers. So 6 mph is 9.66 km/h, and 6:00 per kilometer is 9:39 per mile.</p>
+
+    <h2>Treadmill speed to pace chart</h2>
+    <p>These values are exact. The pace is rounded to the nearest second.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">mph</th><th scope="col">Min per mile</th><th scope="col">km/h</th><th scope="col">Min per km</th></tr></thead>
+        <tbody>
+          {speeds.map((r) => <tr><td>{formatSpeed(r.mph)}</td><td>{r.perMile}</td><td>{r.kmh}</td><td>{r.perKm}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Worked example: an 8:30 mile</h2>
+    <p>You want to run 8:30 per mile. That is 510 seconds. Speed in mph equals 3600 divided by the seconds per mile, so 3600 &divide; 510 = 7.06 mph. Most treadmills step by 0.1, so the nearest setting is 7.1 mph. At 7.1 mph the mile takes 8:27, three seconds faster. If you want to be slower than 8:30, use 7.0 mph, which is 8:34.</p>
+
+    <h2>Race times at common paces</h2>
+    <p>These times hold the pace for the whole distance on a flat belt. Real races add turns, hills and wind.</p>
+    <div class="table-wrap table-wide">
+      <table>
+        <thead><tr><th scope="col">Pace per mile</th><th scope="col">mph</th><th scope="col">5K</th><th scope="col">10K</th><th scope="col">Half</th><th scope="col">Marathon</th></tr></thead>
+        <tbody>
+          {paces.map((p) => <tr><td>{p.label}</td><td>{p.mph}</td><td>{p.t['5k']}</td><td>{p.t['10k']}</td><td>{p.t.half}</td><td>{p.t.full}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+
+    <h2>How incline changes the pace</h2>
+    <p>Incline makes the same speed harder. The tool shows the flat-ground pace that takes about the same effort. This is an estimate, not a measurement.</p>
+    <p>It uses the running equation from the American College of Sports Medicine (ACSM), in <em>ACSM's Guidelines for Exercise Testing and Prescription</em>. Oxygen use in ml per kg per minute is 0.2 &times; S + 0.9 &times; S &times; G + 3.5, where S is speed in meters per minute and G is the grade as a fraction, so 5% is 0.05. For the same oxygen use on a flat belt, the speed is S &times; (1 + 4.5 &times; G). Each 1% of incline is worth about 4.5% more flat speed.</p>
+    <p>Example: you run 6 mph at 5% incline. The flat speed is 6 &times; (1 + 4.5 &times; 0.05) = 7.35 mph. That is an 8:10 mile on flat ground, compared with 10:00 on the belt.</p>
+    <p>The equation was built for steady running at 5 mph (8 km/h) or faster and for grades up to about 15%. Below that speed, or when you walk, treat the number as rough. Heart rate, form, heat and treadmill calibration all change real effort.</p>
+
+    <h2>The 1% incline rule</h2>
+    <p>Outdoors, you push against the air. A belt removes that. In 1996, Jones and Doust compared treadmill running with outdoor running and found that a 1% grade on the treadmill best matched the energy cost of flat outdoor running. Many runners use 1% for easy and steady runs for this reason. It is a rule of thumb.</p>
+
+    <h2>Tips for treadmill pacing</h2>
+    <ul>
+      <li>Write your target pace and its speed on a note before you start, so you do not do math while you run.</li>
+      <li>Change the speed in small steps. One step of 0.1 mph moves a 10:00 mile by about 10 seconds.</li>
+      <li>Check the belt. If your treadmill reads fast or slow, your real pace will not match the display.</li>
+      <li>Use the safety clip and hold the rails when you change the speed.</li>
+      <li>This tool does arithmetic. It is not medical advice. Ask a doctor about a hard training plan if you have a health concern.</li>
+    </ul>
+    <p><a href="#tool">Back to the converter</a></p>
+  </article>
+</section>
+
+<style is:global>
+  .prose-site .table-wrap { overflow-x: auto; margin: 0 0 1.25rem; border: 1px solid var(--line); border-radius: .75rem; max-width: 30rem; }
+  .prose-site .table-wrap.table-wide { max-width: 40rem; }
+  .prose-site table { width: 100%; border-collapse: collapse; font-size: .975rem; }
+  .prose-site th, .prose-site td { text-align: left; padding: .5rem .85rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .prose-site thead th { background: var(--brand-soft); color: var(--brand-ink); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  .prose-site tbody tr + tr td { border-top: 1px solid var(--line); }
+  .prose-site td:first-child { font-weight: 650; }
+</style>
