@@ -3,7 +3,7 @@ import Page from '../layouts/Page.astro';
 import site from '../site.config.ts';
 import { url } from '../lib/url.ts';
 ---
-<Page title="About" description={`About ${site.name}: a free converter for treadmill speed and running pace.`}>
+<Page title="About" description="About Treadmill Pace Converter, a free treadmill pace converter that runs in your browser. See what it does, how it works and why we built it.">
   <p>{site.name} turns a treadmill speed into a running pace, and a pace into the speed to set on the belt. It works in miles and kilometers: mph, km/h, minutes per mile and minutes per kilometer.</p>
   <h2>What it does</h2>
   <p>You type a speed or a pace. The other value updates as you type. You also get the nearest speed a treadmill can really hold (most step by 0.1), finish times for a 5K, 10K, half marathon and marathon, and an estimate of the flat-ground pace that matches a treadmill incline.</p>
