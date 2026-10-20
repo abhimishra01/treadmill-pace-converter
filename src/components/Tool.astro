@@ -223,7 +223,7 @@ const d = describe(6, 0);
       const fp = state.unit === 'mi' ? d.flatPerMile : d.flatPerKm;
       const gain = Math.round(paceOf(state.mph)) - Math.round(fp);
       $('flat-main').textContent = `${formatPace(fp)} per ${u.per} (${formatSpeed(fs)} ${u.speed})`;
-      $('flat-sub').textContent = `At ${formatSpeed(state.incline, 1)}% incline, ${pace} per ${u.per} takes about the effort of ${formatPace(fp)} per ${u.per} on flat ground. That is ${formatPace(gain)} per ${u.per} faster than the belt.`;
+      $('flat-sub').textContent = `At ${formatSpeed(state.incline, 2)}% incline, ${pace} per ${u.per} takes about the effort of ${formatPace(fp)} per ${u.per} on flat ground. That is ${formatPace(gain)} per ${u.per} faster than the belt.`;
     } else if (state.incline > 0) {
       $('flat-main').textContent = `Not shown below ${FLAT_MIN_MPH} mph (${formatSpeed(mphToKmh(FLAT_MIN_MPH), 1)} km/h).`;
       $('flat-sub').textContent = 'The running equation does not cover walking speeds, so this tool gives no flat-ground estimate here.';
@@ -259,8 +259,9 @@ const d = describe(6, 0);
   speedEl.addEventListener('input', () => {
     const n = parseNumber(speedEl.value);
     const lim = LIMITS[state.unit];
+    // The km/h floor is 0.5 mph (0.8047 km/h). Show it rounded up so the number in the message is accepted.
     if (n === null || n < lim.min || n > lim.max) {
-      setErr('speed-err', speedEl, speedEl.value.trim() === '' ? '' : `Enter a speed from ${lim.min} to ${lim.max} ${UNIT[state.unit].speed}.`);
+      setErr('speed-err', speedEl, speedEl.value.trim() === '' ? '' : `Enter a speed from ${Math.ceil(lim.min * 100) / 100} to ${lim.max} ${UNIT[state.unit].speed}.`);
       blank('speed');
       return;
     }
@@ -299,7 +300,7 @@ const d = describe(6, 0);
   // On blur, put every field back in step with the stored value (fixes half-typed or invalid text).
   const settle = () => {
     clearErrs(); setErr('incline-err', inclineEl, '');
-    writeSpeedField(); writePaceField(); inclineEl.value = formatSpeed(state.incline, 1);
+    writeSpeedField(); writePaceField(); inclineEl.value = formatSpeed(state.incline, 2);
     paintResult();
   };
   [speedEl, paceEl, inclineEl].forEach((el) => el.addEventListener('blur', settle));
@@ -317,7 +318,7 @@ const d = describe(6, 0);
   function setIncline(v: number) {
     state.incline = Math.min(MAX_INCLINE, Math.max(0, v));
     setErr('incline-err', inclineEl, '');
-    inclineEl.value = formatSpeed(state.incline, 1);
+    inclineEl.value = formatSpeed(state.incline, 2);
     paintResult();
   }
   $('inc-dec').addEventListener('click', () => setIncline(Math.round(state.incline * 2) / 2 - 0.5));
@@ -335,5 +336,5 @@ const d = describe(6, 0);
     clearErrs(); paintUnitUi(); writeSpeedField(); writePaceField(); paintResult();
   }));
 
-  paintUnitUi(); writeSpeedField(); writePaceField(); inclineEl.value = formatSpeed(state.incline, 1); paintResult();
+  paintUnitUi(); writeSpeedField(); writePaceField(); inclineEl.value = formatSpeed(state.incline, 2); paintResult();
 </script>
