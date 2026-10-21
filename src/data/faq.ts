@@ -1,5 +1,6 @@
 // FAQ items. Rendered on the home page AND output as FAQPage JSON-LD. Plain text only.
 export const faq = [
+  { q: 'What does the treadmill pace converter do?', a: 'It turns treadmill speed in mph or km/h into pace in min per mile or min per km, and it turns a pace back into a speed. It also gives an incline-adjusted flat pace and finish times for 5K to marathon.' },
   { q: 'How do I convert treadmill mph to pace?', a: 'Divide 60 by the speed. The answer is minutes per mile. At 6 mph, 60 divided by 6 is 10, so the pace is 10:00 per mile. At 7.5 mph, the pace is 8:00 per mile. For the seconds, multiply the decimal part by 60. At 7 mph, 60 divided by 7 is 8.571, and 0.571 times 60 is 34 seconds, so the pace is 8:34 per mile.' },
   { q: 'How do I convert km/h to min/km?', a: 'Divide 60 by the speed in km/h. At 10 km/h, 60 divided by 10 is 6, so the pace is 6:00 per kilometer. At 12 km/h, the pace is 5:00 per kilometer.' },
   { q: 'What treadmill speed is a 10-minute mile?', a: 'A 10-minute mile is 6 mph, which is 9.66 km/h. An 8-minute mile is 7.5 mph, which is 12.07 km/h. A 9-minute mile is 6.67 mph, which is 10.73 km/h.' },
